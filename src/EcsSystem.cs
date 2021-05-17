@@ -329,35 +329,41 @@ namespace Leopotam.Ecs {
             var worldType = world.GetType ();
             var filterType = typeof (EcsFilter);
             var ignoreType = typeof (EcsIgnoreInjectAttribute);
+            var ecsSystemType = typeof (IEcsSystem);
 
-            foreach (var f in systemType.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)) {
-                // skip statics or fields with [EcsIgnoreInject] attribute.
-                if (f.IsStatic || Attribute.IsDefined (f, ignoreType)) {
-                    continue;
-                }
-                // EcsWorld
-                if (f.FieldType.IsAssignableFrom (worldType)) {
-                    f.SetValue (system, world);
-                    continue;
-                }
-                // EcsFilter
+            do
+            {
+                foreach (var f in systemType.GetFields (BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)) {
+                    // skip statics or fields with [EcsIgnoreInject] attribute.
+                    if (f.IsStatic || Attribute.IsDefined (f, ignoreType)) {
+                        continue;
+                    }
+                    // EcsWorld
+                    if (f.FieldType.IsAssignableFrom (worldType)) {
+                        f.SetValue (system, world);
+                        continue;
+                    }
+                    // EcsFilter
 #if DEBUG
-                if (f.FieldType == filterType) {
-                    throw new Exception ($"Cant use EcsFilter type at \"{system}\" system for dependency injection, use generic version instead");
-                }
+                    if (f.FieldType == filterType) {
+                        throw new Exception ($"Cant use EcsFilter type at \"{system}\" system for dependency injection, use generic version instead");
+                    }
 #endif
-                if (f.FieldType.IsSubclassOf (filterType)) {
-                    f.SetValue (system, world.GetFilter (f.FieldType));
-                    continue;
-                }
-                // Other injections.
-                foreach (var pair in injections) {
-                    if (f.FieldType.IsAssignableFrom (pair.Key)) {
-                        f.SetValue (system, pair.Value);
-                        break;
+                    if (f.FieldType.IsSubclassOf (filterType)) {
+                        f.SetValue (system, world.GetFilter (f.FieldType));
+                        continue;
+                    }
+                    // Other injections.
+                    foreach (var pair in injections) {
+                        if (f.FieldType.IsAssignableFrom (pair.Key)) {
+                            f.SetValue (system, pair.Value);
+                            break;
+                        }
                     }
                 }
-            }
+
+                systemType = systemType.BaseType;
+            } while (systemType != null && ecsSystemType.IsAssignableFrom(systemType));
         }
     }
 
