@@ -333,6 +333,7 @@ namespace Leopotam.Ecs {
 
             do
             {
+                // iterate over all instance fields of the systemType excluding any fields inherited from base classes 
                 foreach (var f in systemType.GetFields (BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)) {
                     // skip statics or fields with [EcsIgnoreInject] attribute.
                     if (f.IsStatic || Attribute.IsDefined (f, ignoreType)) {
